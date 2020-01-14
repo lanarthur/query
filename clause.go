@@ -57,6 +57,10 @@ type union struct {
 	query Query
 }
 
+type duplicate struct {
+	query Query
+}
+
 type values struct {
 	vals []interface{}
 }
@@ -76,6 +80,7 @@ const (
 	count_
 	returning_
 	union_
+	duplicate_
 )
 
 func (k clauseKind) build(buf *bytes.Buffer) {
@@ -110,6 +115,9 @@ func (k clauseKind) build(buf *bytes.Buffer) {
 		buf.WriteString("RETURNING ")
 	case count_:
 		buf.WriteString("COUNT")
+		return
+	case duplicate_:
+		buf.WriteString("ON DUPLICATE KEY UPDATE ")
 		return
 	}
 }
@@ -222,4 +230,16 @@ func (u union) cat() string {
 
 func (u union) kind() clauseKind {
 	return union_
+}
+
+func (u duplicate) build(buf *bytes.Buffer) {
+	buf.WriteString(u.query.buildInitial())
+}
+
+func (u duplicate) cat() string {
+	return " ON DUPLICATE KEY UPDATE "
+}
+
+func (u duplicate) kind() clauseKind {
+	return duplicate_
 }

@@ -9,8 +9,11 @@ type testQuery struct {
 
 func checkQueries(qq []testQuery, t *testing.T) {
 	for _, q := range qq {
-		built := q.query.Build()
-
+		s := q.query
+		built := s.Build()
+		t.Log(built)
+		v := s.Args()
+		t.Log(v)
 		if built != q.expected {
 			t.Fatalf(
 				"query not as expected:\n\texpected = '%s'\n\t  actual = '%s'",
@@ -203,6 +206,23 @@ func TestInsert(t *testing.T) {
 		},
 	}
 
+	checkQueries(queries, t)
+}
+
+func TestUpsert(t *testing.T) {
+	queries := []testQuery{
+		{
+			"INSERT INTO users (email, username, password, count) VALUES ($1, $2, $3, $4) ON DUPLICATE KEY UPDATE username = $5, password = $6, count = VALUES(count)+1",
+			Upsert(
+				Into("users"),
+				Columns("email", "username", "password", "count"),
+				Values("me@exmaple.com", "me", "secret", 1),
+				Duplicate("username", "me@exmaple.com"),
+				Duplicate("password", "secret"),
+				DuplicateRaw("count", "VALUES(count)+1"),
+			),
+		},
+	}
 	checkQueries(queries, t)
 }
 

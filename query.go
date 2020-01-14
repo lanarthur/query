@@ -22,6 +22,7 @@ const (
 	insert_
 	update_
 	delete_
+	upsert_
 )
 
 var paren map[clauseKind]struct{} = map[clauseKind]struct{}{
@@ -86,6 +87,19 @@ func Union(queries ...Query) Query {
 	return q
 }
 
+// Duplicate adds the on duplicate key update clause to each of the insert statement given.
+func Upsert(opts ...Option) Query {
+	q := Query{
+		stmt: upsert_,
+	}
+
+	for _, opt := range opts {
+		q = opt(q)
+	}
+
+	return q
+}
+
 // Update creates an UPDATE statement query.
 func Update(opts ...Option) Query {
 	q := Query{
@@ -119,6 +133,9 @@ func (q Query) buildInitial() string {
 		break
 	case delete_:
 		buf.WriteString("DELETE ")
+		break
+	case upsert_:
+		buf.WriteString("INSERT ")
 		break
 	}
 

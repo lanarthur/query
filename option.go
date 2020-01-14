@@ -71,7 +71,7 @@ func As(name string) Option {
 
 func Columns(cols ...string) Option {
 	return func(q Query) Query {
-		if q.stmt == insert_ {
+		if q.stmt == insert_ || q.stmt == upsert_ {
 			end := len(cols) - 1
 
 			cols[0] = "(" + cols[0]
@@ -118,7 +118,7 @@ func From(item string) Option {
 
 func Into(item string) Option {
 	return func(q Query) Query {
-		if q.stmt == insert_ {
+		if q.stmt == insert_ || q.stmt == upsert_ {
 			t := table{
 				kind_: into_,
 				item:  item,
@@ -258,6 +258,32 @@ func SetRaw(col string, val interface{}) Option {
 	}
 }
 
+func Duplicate(col string, val interface{}) Option {
+	return func(q Query) Query {
+		q.args = append(q.args, val)
+
+		return DuplicateRaw(col, "?")(q)
+	}
+}
+
+func DuplicateRaw(col string, val interface{}) Option {
+	return func(q Query) Query {
+		if q.stmt == upsert_ {
+			c := column{
+				col:   col,
+				op:    "=",
+				val:   val,
+				kind_: duplicate_,
+				cat_:  ",",
+			}
+
+			q.clauses = append(q.clauses, c)
+		}
+
+		return q
+	}
+}
+
 func Table(item string) Option {
 	return func(q Query) Query {
 		if q.stmt == update_ {
@@ -275,7 +301,7 @@ func Table(item string) Option {
 
 func Values(vals ...interface{}) Option {
 	return func(q Query) Query {
-		if q.stmt == insert_ {
+		if q.stmt == insert_ || q.stmt == upsert_ {
 			items := make([]string, 0, len(vals))
 
 			for range vals {
